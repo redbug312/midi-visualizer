@@ -4,8 +4,10 @@ import gi
 gi.require_version('Gst', '1.0')
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gst, Gtk, GLib
+
 import midi
 import video
+import pipeline
 
 
 class Player(object):
@@ -14,53 +16,32 @@ class Player(object):
         Gtk.init(None)
         Gst.init(None)
 
-        self.destination = None                   # file path to save the result
-        self.duration = Gst.CLOCK_TIME_NONE       # time length of the video
-        self.player = Gst.Pipeline.new('player')  # the gstreamer pipeline, as below
+        self.destination = None
+        self.duration = Gst.CLOCK_TIME_NONE
+        self.player = Gst.Pipeline.new('player')
+        self.builder = None
 
-        # Pipeline below is equivalent to
-        #   Gst.parse_launch("""
-        #       filesrc location=..webm ! matroskademux ! queue ! vp8dec ! videoconvert ! gtksink
-        #       filesrc location=..mid ! midiparse ! fluiddec soundfont=..sf2 ! autoaudiosink
-        #   """)
+        frontend_elements = ['webmsrc', 'matroskademux', 'webmqueue',
+                             'midisrc', 'midiparse', 'fluiddec']
+        backend_elements = ['vp8dec', 'videoconvert', 'gtksink',
+                            'autoaudiosink']
+        frontend = pipeline.make_frontend_pipeline('frontend', frontend_elements)
+        play_backend = pipeline.make_play_backend_pipeline('backend', backend_elements)
+        frontend.get_by_name('webmsrc').set_property('location', 'test.webm')
+        frontend.get_by_name('midisrc').set_property('location', 'midi/The Positive and Negative.mid')
+        frontend.get_by_name('fluiddec').set_property('soundfont', 'soundfont/Touhou.sf2')
 
-        webmsrc       = Gst.ElementFactory.make('filesrc', 'webmsrc')
-        matroskademux = Gst.ElementFactory.make('matroskademux', 'matroskademux')
-        vp8dec        = Gst.ElementFactory.make('vp8dec', 'vp8dec')
-        webmqueue     = Gst.ElementFactory.make('queue', 'webmqueue')
-        videoconvert  = Gst.ElementFactory.make('videoconvert', 'videoconvert')
-        gtksink       = Gst.ElementFactory.make('gtksink', 'gtksink')
-        midisrc       = Gst.ElementFactory.make('filesrc', 'midisrc')
-        midiparse     = Gst.ElementFactory.make('midiparse', 'midiparse')
-        fluiddec      = Gst.ElementFactory.make('fluiddec', 'fluiddec')
-        autoaudiosink = Gst.ElementFactory.make('autoaudiosink', 'autoaudiosink')
+        self.player.add(frontend)
+        self.player.add(play_backend)
+        frontend.link_pads('video_src', play_backend, 'video_sink')
+        frontend.link_pads('audio_src', play_backend, 'audio_sink')
 
-        for element in [webmsrc, matroskademux, webmqueue, vp8dec, videoconvert,
-                        gtksink, midisrc, midiparse, fluiddec, autoaudiosink]:
-            self.player.add(element)
-
-        def on_demux_pad_added(demux, pad):
-            caps = pad.query_caps(None)
-            structure_name = caps.to_string()
-            if structure_name.startswith('video'):
-                pad.link(webmqueue.get_static_pad('sink'))
-
-        webmsrc.link(matroskademux)
-        matroskademux.connect('pad-added', on_demux_pad_added)
-        webmqueue.link(vp8dec)
-        vp8dec.link(videoconvert)
-        videoconvert.link(gtksink)
-        midisrc.link(midiparse)
-        midiparse.link(fluiddec)
-        fluiddec.link(autoaudiosink)
-        fluiddec.set_property('soundfont', 'soundfont/Touhou.sf2')
-
-        self.gtksink = gtksink.ref()
+        gtksink = play_backend.get_by_name('gtksink')
         self.builder = self.build_ui()
+        self.builder.get_object('video_container').pack_start(gtksink.props.widget, True, True, 0)
         # slider connected not through Glade, for getting handler_id
         self.slider_update_signal_id = \
             self.builder.get_object('time_slider').connect('value_changed', self.on_slider_changed)
-        self.builder.get_object('video_container').pack_start(self.gtksink.props.widget, True, True, 0)
 
         bus = self.player.get_bus()
         bus.add_signal_watch()
@@ -110,7 +91,7 @@ class Player(object):
             slider.handler_unblock(self.slider_update_signal_id)
         return True
 
-    # Utilizing functions
+    # Gtk utilizing functions
 
     def set_window_sensitive(self, sensitive):
         self.player.set_state(Gst.State.READY if sensitive else Gst.State.NULL)
@@ -137,9 +118,6 @@ class Player(object):
     # Gtk events: Menu bar
 
     def on_file_open_activate(self, menuitem):
-        webmsrc = self.player.get_by_name('webmsrc')
-        midisrc = self.player.get_by_name('midisrc')
-
         open_dialog  = self.builder.get_object('open_dialog')
         progress_bar = self.builder.get_object('progressing_bar')
         hint_label   = self.builder.get_object('hint_label')
@@ -166,12 +144,9 @@ class Player(object):
 
             self.set_window_sensitive(True)
 
-            webmsrc.set_property('location', 'tmp.webm~')
-            midisrc.set_property('location', source)
             progress_bar.set_fraction(1)
             hint_label.set_visible(False)
-
-            self.gtksink.props.widget.show()
+            self.player.get_by_name('gtksink').props.widget.show()
         elif response == Gtk.ResponseType.CANCEL:
             return
 
@@ -186,65 +161,36 @@ class Player(object):
                 return
 
         if self.destination:
-            # Pipeline below is equivalent to
-            #   Gst.parse_launch("""
-            #       webmmux name=mux ! filesink location="test.webm"
-            #       filesrc location=..webm ! matroskademux ! queue ! mux
-            #       filesrc location=..mid ! midiparse ! fluiddec soundfont=..sf2 ! \
-            #           audioconvert ! vorbisenc ! queue ! mux
-            #   """)
-            webmqueue    = self.player.get_by_name('webmqueue')
-            fluiddec     = self.player.get_by_name('fluiddec')
-
-            webmmux      = Gst.ElementFactory.make('webmmux', 'webmmux')
-            filesink     = Gst.ElementFactory.make('filesink', 'filesink')
-            audioconvert = Gst.ElementFactory.make('audioconvert', 'audioconvert')
-            vorbisenc    = Gst.ElementFactory.make('vorbisenc', 'vorbisenc')
-            midiqueue    = Gst.ElementFactory.make('queue', 'midiqueue')
+            backend_elements = ['webmmux', 'filesink',
+                                'audioconvert', 'vorbisenc', 'midiqueue']
+            frontend     = self.player.get_by_name('frontend')
+            play_backend = self.player.get_by_name('backend').ref()  # Avoid making the same subpipeline
+            save_backend = pipeline.make_save_backend_pipeline('backend', backend_elements)
+            save_backend.get_by_name('filesink').set_property('location', self.destination)
 
             self.set_window_sensitive(False)
 
-            for gstobject in ['vp8dec', 'videoconvert', 'gtksink', 'autoaudiosink']:
-                self.player.remove(self.player.get_by_name(gstobject))
-            for gstobject in [webmmux, filesink, audioconvert, vorbisenc, midiqueue]:
-                self.player.add(gstobject)
-            webmmux.link(filesink)
-            fluiddec.link(audioconvert)
-            webmqueue.link_pads(None, webmmux, 'video_0')
-            audioconvert.link(vorbisenc)
-            vorbisenc.link(midiqueue)
-            midiqueue.link_pads(None, webmmux, 'audio_0')
-            filesink.set_property('location', self.destination)
+            self.player.remove(play_backend)
+            self.player.add(save_backend)
+            frontend.link_pads('video_src', save_backend, 'video_sink')
+            frontend.link_pads('audio_src', save_backend, 'audio_sink')
 
             self.player.set_state(Gst.State.PLAYING)
+            bus = self.player.get_bus()
+            # Refresh slider bar while waiting for EOS
+            while bus.timed_pop_filtered(30000000, Gst.MessageType.EOS) is None:
+                while Gtk.events_pending():
+                    Gtk.main_iteration()
 
+            self.player.remove(save_backend)
+            self.player.add(play_backend)
+            frontend.link_pads('video_src', play_backend, 'video_sink')
+            frontend.link_pads('audio_src', play_backend, 'audio_sink')
+
+            self.set_window_sensitive(True)
 
     def on_file_save_as_activate(self, menuitem):
         self.on_file_save_activate(menuitem, save_as=True)
-
-    def on_file_save_revert(self):
-        # Revert the pipeline, triggered only when receiving EOS
-        # Noticed that remove() also dereference the Gst element
-        webmqueue     = self.player.get_by_name('webmqueue')
-        fluiddec      = self.player.get_by_name('fluiddec')
-
-        autoaudiosink = Gst.ElementFactory.make('autoaudiosink', 'autoaudiosink')
-        vp8dec        = Gst.ElementFactory.make('vp8dec', 'vp8dec')
-        videoconvert  = Gst.ElementFactory.make('videoconvert', 'videoconvert')
-        gtksink       = self.gtksink
-
-        self.set_window_sensitive(False)
-
-        for gstobject in ['webmmux', 'filesink', 'audioconvert', 'vorbisenc', 'midiqueue']:
-            self.player.remove(self.player.get_by_name(gstobject))
-        for gstobject in [autoaudiosink, vp8dec, videoconvert, gtksink]:
-            self.player.add(gstobject)
-        webmqueue.link(vp8dec)
-        vp8dec.link(videoconvert)
-        videoconvert.link(gtksink)
-        fluiddec.link(autoaudiosink)
-
-        self.set_window_sensitive(True)
 
     def on_delete_event(self, widget, event=None):
         self.on_stop(None)
@@ -267,9 +213,6 @@ class Player(object):
             if message.src == self.player:
                 self.refresh_ui()
         elif message.type == Gst.MessageType.EOS:
-            is_saving = bool(self.player.get_by_name('filesink'))
-            if is_saving:
-                self.on_file_save_revert()
             self.player.set_state(Gst.State.READY)
 
 
