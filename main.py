@@ -16,6 +16,7 @@ class Player(object):
         Gtk.init(None)
         Gst.init(None)
 
+        self.refresh_interval = 30  # in milliseconds
         self.destination = None
         self.duration = Gst.CLOCK_TIME_NONE
         self.player = Gst.Pipeline.new('player')
@@ -48,7 +49,7 @@ class Player(object):
         bus.connect('message', self.on_message)
 
     def start(self):
-        GLib.timeout_add(30, self.refresh_ui)
+        GLib.timeout_add(self.refresh_interval, self.refresh_ui)
         Gtk.main()
 
     def cleanup(self):
@@ -67,9 +68,9 @@ class Player(object):
         return builder
 
     def refresh_ui(self):
-        state = self.player.get_state(timeout=10)[1]
-
+        state = self.player.get_state(timeout=self.refresh_interval)[1]
         button = self.builder.get_object('play_pause_button')
+
         if state == Gst.State.PLAYING:
             button.get_image().set_from_icon_name(Gtk.STOCK_MEDIA_PAUSE, Gtk.IconSize.BUTTON)
             button.set_label('暫停')
@@ -131,14 +132,14 @@ class Player(object):
 
             self.set_window_sensitive(False)
 
-            def update_pregress_bar(clip):
+            def update_progress_bar(clip):
                 progress = progress_bar.get_fraction() + 1 / clip.nframes
                 progress_bar.set_fraction(progress)
                 while Gtk.events_pending():
                     Gtk.main_iteration()
 
             sheet = midi.Midi(source)
-            clip = video.midi_videoclip(sheet, callback=update_pregress_bar)
+            clip = video.midi_videoclip(sheet, iter_callback=update_progress_bar)
             clip.write_videofile('tmp.webm', codec='libvpx', fps=15)
             os.rename('tmp.webm', 'tmp.webm~')  # MoviePy disallows illegal file extension
 
@@ -178,7 +179,7 @@ class Player(object):
             self.player.set_state(Gst.State.PLAYING)
             bus = self.player.get_bus()
             # Refresh slider bar while waiting for EOS
-            while bus.timed_pop_filtered(30000000, Gst.MessageType.EOS) is None:
+            while bus.timed_pop_filtered(self.refresh_interval * 1e6, Gst.MessageType.EOS) is None:
                 while Gtk.events_pending():
                     Gtk.main_iteration()
 

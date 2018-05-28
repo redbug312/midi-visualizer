@@ -28,18 +28,18 @@ def visualize_midi(midi, size):
     return make_frame
 
 
-def midi_videoclip(sheet, size=(640, 360), callback=None):
+def midi_videoclip(sheet, size=(640, 360), iter_callback=None):
     clip = mpy.VideoClip(visualize_midi(sheet, size), duration=sheet.midi.length)
 
     # callback function is for refreshing gtk progressing bar
     # the following code is altered from github.com/Zulko/moviepy/blob/6cbd4f347735e8bdd8224589f986e42addbec8a1/moviepy/Clip.py#L446
-    if callback is not None:
+    if iter_callback is not None:
         def my_iter_frames(fps=None, with_times=False, progress_bar=False, dtype=None):
             clip.nframes = int(clip.duration * fps) + 1
 
             def generator():
                 for t in np.arange(0, clip.duration, 1.0 / fps):
-                    callback(clip)
+                    iter_callback(clip)
                     frame = clip.get_frame(t)
                     if (dtype is not None) and (frame.dtype != dtype):
                         frame = frame.astype(dtype)
