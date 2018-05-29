@@ -1,5 +1,11 @@
 # MIDI Visualizer
-MIDI visualize_midi written in Gtk and Gstreamer
+MIDI visualizer is a Gtk application to visualize MIDI file as piano tutorials.
+
+![Here's preview of MIDI visualizer](doc/images/preview.png)
+
+This project contains only the most basic features, and remains lots of space for performance improvement. For those who're interested, I would suggest [build a Gstreamer plugin](https://gstreamer.freedesktop.org/documentation/plugin-development/) from scratch instead of forking this repository.
+
+This repository is homework from the course Multimedium Computing Environment (NTU, 2018 Spring).
 
 ## Build Environment
 
@@ -46,17 +52,37 @@ $ pip3 install --user gizeh moviepy mido intervaltree
         + cairo = dlopen(ffi, 'cairo', 'cairo-2', 'cairo-gobject-2')
         ```
 
-<!--TODO: links to their websites-->
+## Execute the Program
+
+```bash
+$ python3 main.py
+```
+And a Gtk window should show up.
+![](doc/images/initial.png)
+
+Then you need to open a MIDI file and wait for video generating (about 1 minute for each of example midi files).
+![](doc/images/generate.png)
+
+**Noted**: There are some issues with playing the video in Windows, but its saving feature still works.
+
+## Details Explanation
+
+### Pipeline for Playing Video
+![pipeline diagram when playing](doc/images/play_pipeline.png)
+
+### Pipeline for Saving Video
+![pipeline diagram when saving](doc/images/save_pipeline.png)
+
 ## Contributes
 1. Gtk framework
-    - Gtk+
-    - Gstreamer
-2. Python libraries
-    - gizeh
-    - moviepy
-    - mido
-    - intervaltree
+    - [Gtk+](https://www.gtk.org/): a multi-platform toolkit for creating graphical user interfaces
+    - [Gstreamer](https://gstreamer.freedesktop.org/): a library for constructing graphs of media-handling components
+2. Dependent packages
+    - [gizeh](https://github.com/Zulko/gizeh): a Python library for vector graphics
+    - [moviepy](https://github.com/Zulko/moviepy): a Python library for video editing
+    - [mido](https://github.com/olemb/mido/): a library for working with MIDI messages and ports
+    - [intervaltree](https://github.com/chaimleib/intervaltree): a mutable, self-balancing interval tree
 3. Resources
-    - `midi/The Positive And Negative.mid`
-    - `midi/Charming Domination.mid`
-    - `soundfont/Touhou.sf2`
+    - `midi/The Positive And Negative.mid` is from [Chris33711's Youtube video](https://www.youtube.com/watch?v=n2HGEiUBTQY)
+    - `midi/Charming Domination.mid` is from [Chris33711's Youtube video](https://www.youtube.com/watch?v=psOjoZmGLnA)
+    - `soundfont/Touhou.sf2` is from [musical-artifacts.com](https://musical-artifacts.com/artifacts/433)
