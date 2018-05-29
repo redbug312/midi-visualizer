@@ -28,8 +28,6 @@ class Player(object):
                             'autoaudiosink']
         frontend = pipeline.make_frontend_pipeline('frontend', frontend_elements)
         play_backend = pipeline.make_play_backend_pipeline('backend', backend_elements)
-        frontend.get_by_name('webmsrc').set_property('location', 'test.webm')
-        frontend.get_by_name('midisrc').set_property('location', 'midi/The Positive and Negative.mid')
         frontend.get_by_name('fluiddec').set_property('soundfont', 'soundfont/Touhou.sf2')
 
         self.player.add(frontend)
@@ -119,6 +117,9 @@ class Player(object):
     # Gtk events: Menu bar
 
     def on_file_open_activate(self, menuitem):
+        webmsrc = self.player.get_by_name('webmsrc')
+        midisrc = self.player.get_by_name('midisrc')
+
         open_dialog  = self.builder.get_object('open_dialog')
         progress_bar = self.builder.get_object('progressing_bar')
         hint_label   = self.builder.get_object('hint_label')
@@ -126,6 +127,7 @@ class Player(object):
         response = open_dialog.run()
         open_dialog.hide()
         if response == Gtk.ResponseType.OK:
+            self.duration = Gst.CLOCK_TIME_NONE
             source = open_dialog.get_filename()
             progress_bar.set_fraction(0)
             hint_label.set_text('正在解析 MIDI 檔案為影片...')
@@ -140,8 +142,10 @@ class Player(object):
 
             sheet = midi.Midi(source)
             clip = video.midi_videoclip(sheet, iter_callback=update_progress_bar)
-            clip.write_videofile('tmp.webm', codec='libvpx', fps=15)
+            clip.write_videofile('tmp.webm', codec='libvpx', fps=20)
             os.rename('tmp.webm', 'tmp.webm~')  # MoviePy disallows illegal file extension
+            webmsrc.set_property('location', 'tmp.webm~')
+            midisrc.set_property('location', source)
 
             self.set_window_sensitive(True)
 

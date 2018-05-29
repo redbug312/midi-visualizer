@@ -30,7 +30,10 @@ class Midi():
                     self.pending_notes[message.note] = (count_notes, tick)  # index, begin_tick
                     count_notes += 1
                 elif message.type == 'note_off':
-                    assert message.note in self.pending_notes, 'a note_off before note_on'
+                    try:
+                        assert message.note in self.pending_notes, 'a note_off before note_on'
+                    except AssertionError:
+                        continue
                     index, begin = self.pending_notes[message.note]
                     self.timeline[begin:tick] = index
                     del self.pending_notes[message.note]
@@ -38,23 +41,30 @@ class Midi():
                     current_meta['tempo'] = message.tempo
                     meta_messages.append((tick, dict(current_meta)))
                 elif message.type == 'end_of_track':
+                    try:
+                        assert not self.pending_notes, 'no note_off after note_on'
+                    except AssertionError:
+                        self.pending_notes = dict()
                     meta_messages.append((tick, dict(current_meta)))
                     tick = 0
-                    assert not self.pending_notes, 'no note_off after note_on'
 
         lasttime_sec = 0.0
 
         for prev_meta, curr_meta in zip(meta_messages, meta_messages[1:]):
-            if prev_meta[0] == curr_meta[0]:
-                continue
             interval_sec = mido.tick2second(curr_meta[0] - prev_meta[0],
                                             self.midi.ticks_per_beat,
                                             prev_meta[1]['tempo'])
-            self.metas[lasttime_sec : lasttime_sec + interval_sec] = \
-                dict(prev_meta[1], ticks=(prev_meta[0], curr_meta[0]))
+            try:
+                self.metas[lasttime_sec : lasttime_sec + interval_sec] = \
+                    dict(prev_meta[1], ticks=(prev_meta[0], curr_meta[0]))
+            except ValueError:  # interval_sec is not a positive number
+                continue
             lasttime_sec += interval_sec
 
-        assert abs(lasttime_sec - self.midi.length) < 1, 'wrong mapping from seconds to ticks'
+        try:
+            assert abs(lasttime_sec - self.midi.length) < 1, 'wrong mapping from seconds to ticks'
+        except AssertionError:
+            pass
 
     def second2tick(self, time):
         try:
