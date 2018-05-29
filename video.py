@@ -89,7 +89,7 @@ def midi_videoclip(sheet, size=(640, 360), iter_callback=None):
     clip = mpy.VideoClip(visualize_midi(sheet, size), duration=sheet.midi.length)
 
     # callback function is for refreshing gtk progressing bar
-    # the following code is altered from github.com/Zulko/moviepy/blob/6cbd4f347735e8bdd8224589f986e42addbec8a1/moviepy/Clip.py#L446
+    # the following code is altered from moviepy/Clip.py:446
     if iter_callback is not None:
         def my_iter_frames(fps=None, with_times=False, progress_bar=False, dtype=None):
             clip.nframes = int(clip.duration * fps) + 1
@@ -111,6 +111,8 @@ def midi_videoclip(sheet, size=(640, 360), iter_callback=None):
 
     return clip
 
+
+# Test script
 # sheet = midi.Midi('midi/The Positive and Negative.mid')
 # clip = midi_videoclip(sheet)
 # clip.write_videofile('/tmp/test.webm', fps=20)
