@@ -5,26 +5,83 @@ import numpy as np
 import midi
 
 
-def visualize_midi(midi, size):
-    def make_frame(t):
-        surface = gizeh.Surface(*size)
-        current, future = midi.second2tick(t), midi.second2tick(t+3)
-        for begin, end, note in midi.timeline[current:future]:
-            try:
-                assert future is not None
-            except AssertionError:  # future exceeds midi length
-                future = 2 * current - midi.second2tick(t-3)
+RGB = lambda hx: tuple(map(lambda c: int(c, 16) / 256, [hx[1:3], hx[3:5], hx[5:7]]))
+is_ebony = lambda note: (note % 12) in [1, 3, 6, 8, 10]
+is_ivory = lambda note: not is_ebony(note)
+position = {
+    **{ivory: (index + 0.5) / 52 for index, ivory in enumerate(filter(is_ivory, range(21, 109)))},
+    **{ebony:  index / 52 for index, ebony in zip(filter(lambda x: x % 7 not in [2, 5], range(1, 52)),
+                                                  filter(is_ebony, range(21, 109)))}
+}
+track_colors = [
+    (RGB('#DE935F'), RGB('#F0C674')),
+    (RGB('#5E8D87'), RGB('#8ABEB7')),
+    (RGB('#85678F'), RGB('#B294BB')),
+    (RGB('#5F819D'), RGB('#81A2BE'))
+]
 
-            begin, end, note = max(begin, current), min(end, future), midi.notes[note]
-            rect_params = {
-                'lx'  : 5,
-                'ly'  : size[1] * (end - begin) / (future - current) - 5,
-                'xy'  : (size[0] * (note['note'] - 21) / 87,
-                         size[1] * (future - end/2 - begin/2) / (future - current)),
-                'fill': (0, 1, 0)
-            }
-            gizeh.rectangle(**rect_params).draw(surface)
-        return surface.get_npimage()
+
+def foresee_surface(midi, size, offset, time):
+    surface = gizeh.Surface(*size)
+    foresee = 2
+    current, future = midi.second2tick(time), midi.second2tick(time + foresee)
+    for begin, end, note in midi.timeline[current:future]:
+        future = future if future is not None else 2 * current - midi.second2tick(time - foresee)
+
+        begin, end = max(begin, current), min(end, future)
+        note, colors = midi.notes[note]['note'], track_colors[midi.notes[note]['track'] % 4]
+        rect_params = {
+            'lx'  : size[0]/52 if is_ivory(note) else size[0]/52 * 0.7,
+            'ly'  : size[1] * (end - begin) / (future - current) - 5,
+            'xy'  : (size[0] * position[note] + offset[0],
+                     size[1] * (future - end/2 - begin/2) / (future - current) + offset[1]),
+            'fill': colors[1] if is_ivory(note) else colors[0]
+        }
+        gizeh.rectangle(**rect_params).draw(surface)
+    return surface
+
+
+def piano_surface(midi, size, offset, time):
+    surface = gizeh.Surface(*size)
+    current = midi.second2tick(time)
+    hit_note_colors = {
+        midi.notes[interval[2]]['note']: track_colors[midi.notes[interval[2]]['track'] % 4]
+        for interval in midi.timeline[current]
+    }
+
+    ivory_params = lambda note: {
+        'lx'    : size[0]/52,
+        'ly'    : size[1],
+        'xy'    : (size[0] * position[note], size[1] / 2),
+        'fill'  : hit_note_colors[note][1] if note in hit_note_colors.keys() else RGB('#CBCFCC'),
+        'stroke': RGB('#3A3E42'),
+        'stroke_width': 1
+    }
+    ebony_params = lambda note: {
+        'lx'  : size[0]/52 * 0.7,
+        'ly'  : size[1] * 2/3,
+        'xy'  : (size[0] * position[note], size[1] / 3),
+        'fill': hit_note_colors[note][0] if note in hit_note_colors.keys() else RGB('#3A3E42')
+    }
+
+    for note in filter(is_ivory, range(21, 109)):
+        gizeh.rectangle(**ivory_params(note)).draw(surface)
+    for note in filter(is_ebony, range(21, 109)):
+        gizeh.rectangle(**ebony_params(note)).draw(surface)
+    return surface
+
+
+def visualize_midi(midi, size):
+    piano_size     = (size[0], int(size[0]/52 * 6))
+    piano_offset   = (0, 0)
+    foresee_size   = (size[0], size[1] - piano_size[1])
+    foresee_offset = (0, 0)
+
+    def make_frame(t):
+        foresee = foresee_surface(midi, foresee_size, foresee_offset, t).get_npimage()
+        piano = piano_surface(midi, piano_size, piano_offset, t).get_npimage()
+        return np.concatenate((foresee, piano), axis=0)
+
     return make_frame
 
 
