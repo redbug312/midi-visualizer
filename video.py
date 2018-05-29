@@ -8,11 +8,11 @@ import midi
 RGB = lambda hx: tuple(map(lambda c: int(c, 16) / 256, [hx[1:3], hx[3:5], hx[5:7]]))
 is_ebony = lambda note: (note % 12) in [1, 3, 6, 8, 10]
 is_ivory = lambda note: not is_ebony(note)
-position = {
-    **{ivory: (index + 0.5) / 52 for index, ivory in enumerate(filter(is_ivory, range(21, 109)))},
-    **{ebony:  index / 52 for index, ebony in zip(filter(lambda x: x % 7 not in [2, 5], range(1, 52)),
-                                                  filter(is_ebony, range(21, 109)))}
-}
+
+position = dict()
+position.update({ivory: (index + 0.5) / 52 for index, ivory in enumerate(filter(is_ivory, range(21, 109)))})
+position.update({ebony: index / 52 for index, ebony in zip(filter(lambda x: x % 7 not in [2, 5], range(1, 52)),
+                                                            filter(is_ebony, range(21, 109)))})
 track_colors = [
     (RGB('#DE935F'), RGB('#F0C674')),
     (RGB('#5E8D87'), RGB('#8ABEB7')),
