@@ -1,15 +1,15 @@
 # MIDI Visualizer
-MIDI visualizer is a Gtk application to visualize MIDI file as piano tutorials.
+MIDI visualizer is a Gtk application to visualize MIDI file as piano tutorial videos.
 
 ![Here's preview of MIDI visualizer](doc/images/preview.png)
 
-This project contains only the most basic features, and remains lots of space for performance improvement. For those who're interested, I would suggest [build a Gstreamer plugin](https://gstreamer.freedesktop.org/documentation/plugin-development/) from scratch instead of forking this repository.
+Homework 2 of the course Multimedium Computing Environment (National Taiwan University, 2018 Spring).
 
-This repository is homework from the course Multimedium Computing Environment (NTU, 2018 Spring).
+This project contains only the most basic features, and remains lots of space for performance improvement. For those who're interested, I would suggest [build a Gstreamer plugin](https://gstreamer.freedesktop.org/documentation/plugin-development/) from scratch instead of forking this repository.
 
 ## Build Environment
 
-### Linux
+### Debian-based Linux
 
 ```bash
 $ sudo apt install gstreamer1.0-plugins-bad python3-pip ffmpeg libffi-dev
@@ -19,7 +19,7 @@ $ pip3 install --user gizeh moviepy mido intervaltree
 ### Windows
 
 1. Install [Python 3.4](https://www.python.org/downloads/release/python-340/)
-    - Noted thst PyGObject for Windows do not support Python 3.5 or above
+    - Noted that PyGObject for Windows do not support Python 3.5 or above
 2. Install [PyGObject for Windows](https://sourceforge.net/projects/pygobjectwin32/)
     1. Choose these items in GNOME libraries:
         - Base packages
@@ -57,11 +57,7 @@ $ pip3 install --user gizeh moviepy mido intervaltree
 ```bash
 $ python3 main.py
 ```
-And a Gtk window should show up.
-![](doc/images/initial.png)
-
-Then you need to open a MIDI file and wait for video generating (about 1 minute for each of example midi files).
-![](doc/images/generate.png)
+A Gtk windows shows up after the an additional dependency downloaded by `moviepy`.
 
 **Noted**: There are some issues with playing the video in Windows, but its saving feature still works.
 
@@ -73,7 +69,7 @@ Then you need to open a MIDI file and wait for video generating (about 1 minute 
 ### Pipeline for Saving Video
 ![pipeline diagram when saving](doc/images/save_pipeline.png)
 
-## Contributes
+## Credits
 1. Gtk framework
     - [Gtk+](https://www.gtk.org/): a multi-platform toolkit for creating graphical user interfaces
     - [Gstreamer](https://gstreamer.freedesktop.org/): a library for constructing graphs of media-handling components
