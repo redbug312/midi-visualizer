@@ -14,6 +14,7 @@ This project contains only the most basic features, and remains lots of space fo
 ```bash
 $ sudo apt install gstreamer1.0-plugins-bad python3-pip ffmpeg libffi-dev
 $ pip3 install --user gizeh moviepy mido intervaltree
+$ mkdir -p soundfont && wget musical-artifacts.com/artifacts/433/Touhou.sf2 -O soundfont/Touhou.sf2
 ```
 
 ### Windows
@@ -51,6 +52,7 @@ $ pip3 install --user gizeh moviepy mido intervaltree
         - cairo = dlopen(ffi, 'cairo', 'cairo-2')
         + cairo = dlopen(ffi, 'cairo', 'cairo-2', 'cairo-gobject-2')
         ```
+7. Download soundfont from [musical-artifacts.com](https://musical-artifacts.com/artifacts/433), save it to `soundfont/Touhou.sf2`
 
 ## Execute the Program
 
