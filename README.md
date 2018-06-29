@@ -18,9 +18,9 @@ $ pip3 install --user gizeh moviepy mido intervaltree
 
 ### Windows
 
-1. Install Python 3.4 from
+1. Install [Python 3.4](https://www.python.org/downloads/release/python-340/)
     - Noted thst PyGObject for Windows do not support Python 3.5 or above
-2. Install PyGObject for Windows from
+2. Install [PyGObject for Windows](https://sourceforge.net/projects/pygobjectwin32/)
     1. Choose these items in GNOME libraries:
         - Base packages
         - Gst-plugins

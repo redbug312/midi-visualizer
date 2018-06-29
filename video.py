@@ -12,7 +12,7 @@ is_ivory = lambda note: not is_ebony(note)
 position = dict()
 position.update({ivory: (index + 0.5) / 52 for index, ivory in enumerate(filter(is_ivory, range(21, 109)))})
 position.update({ebony: index / 52 for index, ebony in zip(filter(lambda x: x % 7 not in [2, 5], range(1, 52)),
-                                                            filter(is_ebony, range(21, 109)))})
+                                                           filter(is_ebony, range(21, 109)))})
 track_colors = [
     (RGB('#DE935F'), RGB('#F0C674')),
     (RGB('#5E8D87'), RGB('#8ABEB7')),
@@ -26,7 +26,7 @@ def foresee_surface(midi, size, offset, time):
     foresee = 2
     current, future = midi.second2tick(time), midi.second2tick(time + foresee)
     for begin, end, note in midi.timeline[current:future]:
-        future = future if future is not None else 2 * current - midi.second2tick(time - foresee)
+        future = future or 2 * current - midi.second2tick(time - foresee)
 
         begin, end = max(begin, current), min(end, future)
         note, colors = midi.notes[note]['note'], track_colors[midi.notes[note]['track'] % 4]
