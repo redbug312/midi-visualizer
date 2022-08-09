@@ -2,7 +2,7 @@
 import gizeh
 import moviepy.editor as mpy
 import numpy as np
-import midi
+import parser
 
 
 RGB = lambda hx: tuple(map(lambda c: int(c, 16) / 256, [hx[1:3], hx[3:5], hx[5:7]]))
@@ -91,7 +91,8 @@ def midi_videoclip(sheet, size=(640, 360), iter_callback=None):
     # callback function is for refreshing gtk progressing bar
     # the following code is altered from moviepy/Clip.py:446
     if iter_callback is not None:
-        def my_iter_frames(fps=None, with_times=False, progress_bar=False, dtype=None):
+        def my_iter_frames(fps=None, with_times=False, progress_bar=False,
+                           dtype=None, logger=None):
             clip.nframes = int(clip.duration * fps) + 1
 
             def generator():

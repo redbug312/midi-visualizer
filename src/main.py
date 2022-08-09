@@ -5,7 +5,7 @@ gi.require_version('Gst', '1.0')
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gst, Gtk, GLib
 
-import midi
+from parser import Midi
 import video
 import pipeline
 
@@ -60,7 +60,7 @@ class Player(object):
 
     def build_ui(self):
         builder = Gtk.Builder()
-        builder.add_from_file('ui.glade')
+        builder.add_from_file('src/ui.glade')
         builder.connect_signals(self)
         builder.get_object('main_window').show()
         return builder
@@ -140,7 +140,7 @@ class Player(object):
                 while Gtk.events_pending():
                     Gtk.main_iteration()
 
-            sheet = midi.Midi(source)
+            sheet = Midi(source)
             clip = video.midi_videoclip(sheet, iter_callback=update_progress_bar)
             clip.write_videofile('tmp.webm', codec='libvpx', fps=20)
             os.rename('tmp.webm', 'tmp.webm~')  # MoviePy disallows illegal file extension
