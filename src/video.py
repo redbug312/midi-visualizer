@@ -5,9 +5,17 @@ from heapq import heappush, heappop
 from more_itertools import peekable, first
 from parser import Note
 from itertools import count
+import numpy as np
 
-is_ebony = lambda pitch: (pitch % 12) in [1, 3, 6, 8, 10]
-is_ivory = lambda pitch: not is_ebony(pitch)
+IS_IVORY_KEYS = [x not in [1, 3, 6, 8, 10] for x in range(12)]
+
+is_ebony = lambda pitch: not IS_IVORY_KEYS[pitch % 12]
+is_ivory = lambda pitch: IS_IVORY_KEYS[pitch % 12]
+
+NEAR_EBONY_KEYS = [[] for _ in range(12)]
+for ebony in [1, 3, 6, 8, 10]:
+    NEAR_EBONY_KEYS[ebony + 1].append(-1)
+    NEAR_EBONY_KEYS[ebony - 1].append(1)
 
 OFFSET = [0.0] * 110
 
@@ -97,6 +105,7 @@ class PianoPart:
         all_notes = [Note(i[0], i[1], i[2]) for i in midi.timeline.items()]
         all_notes = sorted(all_notes, key=lambda n: n.begin)
         self.waits = peekable(all_notes)
+        self.idle_piano = self.init_idle_piano()
 
     def make_frame(self, time):
         now = self.midi.second2tick(time)
@@ -108,20 +117,47 @@ class PianoPart:
             note = self.waits.next()
             heappush(self.notes, note)
 
-        hits = {
-            self.midi.notes[note.index]['note']: note for note in self.notes
-        }
+        redraw_ivory = {}
+        redraw_ebony = {}
+        for note in self.notes:
+            pitch = self.midi.notes[note.index]['note']
+            if is_ivory(pitch):
+                redraw_ivory[pitch] = note
+                for neighbor in NEAR_EBONY_KEYS[pitch % 12]:
+                    if pitch + neighbor not in redraw_ebony:
+                        redraw_ebony[pitch + neighbor] = None
+            else:
+                redraw_ebony[pitch] = note
 
         surface = gizeh.Surface(*self.size)
-        for pitch in filter(is_ivory, range(21, 109)):
-            note = hits[pitch] if pitch in hits else None
+        arr = np.frombuffer(surface._cairo_surface.get_data(), np.uint8)
+        arr += self.idle_piano
+        surface._cairo_surface.mark_dirty()
+
+        for pitch, note in redraw_ivory.items():
             rect = self.spawn_ivory_key(pitch, note)
             rect.draw(surface)
-        for pitch in filter(is_ebony, range(21, 109)):
-            note = hits[pitch] if pitch in hits else None
+        for pitch, note in redraw_ebony.items():
             rect = self.spawn_ebony_key(pitch, note)
             rect.draw(surface)
+
         return surface.get_npimage()
+
+    def init_idle_piano(self):
+        surface = gizeh.Surface(*self.size)
+        for pitch in filter(is_ivory, range(21, 109)):
+            rect = self.spawn_ivory_key(pitch, None)
+            rect.draw(surface)
+        for pitch in filter(is_ebony, range(21, 109)):
+            rect = self.spawn_ebony_key(pitch, None)
+            rect.draw(surface)
+
+        w, h = self.size
+        image = surface.get_npimage()
+        image = image[:, :, [2, 1, 0]]
+        image = np.dstack([image, 255 * np.ones((h, w), dtype=np.uint8)])
+        image = image.flatten()
+        return image
 
     def spawn_ivory_key(self, pitch, note=None):
         w, h = self.size
