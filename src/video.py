@@ -5,8 +5,8 @@ import numpy as np
 
 
 RGB = lambda hx: tuple(map(lambda c: int(c, 16) / 256, [hx[1:3], hx[3:5], hx[5:7]]))
-is_ebony = lambda note: (note % 12) in [1, 3, 6, 8, 10]
-is_ivory = lambda note: not is_ebony(note)
+is_ebony = lambda pitch: (pitch % 12) in [1, 3, 6, 8, 10]
+is_ivory = lambda pitch: not is_ebony(pitch)
 
 position = dict()
 position.update({ivory: (index + 0.5) / 52 for index, ivory in enumerate(filter(is_ivory, range(21, 109)))})
@@ -25,128 +25,131 @@ from more_itertools import peekable, first
 from parser import Note
 
 
-class Visualizer:
+class ForeseePart:
     def __init__(self, midi, size):
         self.midi = midi
         self.size = size
-        self.piano_size     = (size[0], int(size[0]/52 * 6))
-        self.piano_offset   = (0, 0)
-        self.foresee_size   = (size[0], size[1] - self.piano_size[1])
-        self.foresee_offset = (0, 0)
+        self.notes = list()
         all_notes = [Note(i[0], i[1], i[2]) for i in midi.timeline.items()]
         all_notes = sorted(all_notes, key=lambda n: n.begin)
-        self.notes = peekable(all_notes)
-        self.notes_hit = peekable(all_notes)
-        self.queue_wait = list()
-        self.queue_hit = list()
+        self.waits = peekable(all_notes)
+        self.foresee = 2  # sec
+        self.callback = lambda _: None
 
-    def foresee_surface(self, time, notes):
-        midi = self.midi
-        size = self.foresee_size
-        offset = self.foresee_offset
-        surface = gizeh.Surface(*size)
-        foresee = 2
-        current, future = midi.second2tick(time), midi.second2tick(time + foresee)
-        for note in notes:
-            begin, end, note = note.begin, note.end, note.index
-            # future = future or 2 * current - midi.second2tick(time - foresee)
-
-            begin, end = max(begin, current), min(end, future)
-            note, colors = midi.notes[note]['note'], track_colors[midi.notes[note]['track'] % 4]
-            rect_params = {
-                'lx'  : size[0]/52 if is_ivory(note) else size[0]/52 * 0.7,
-                'ly'  : size[1] * (end - begin) / (future - current) - 5,
-                'xy'  : (size[0] * position[note] + offset[0],
-                         size[1] * (future - end/2 - begin/2) / (future - current) + offset[1]),
-                'fill': colors[1] if is_ivory(note) else colors[0]
-            }
-            gizeh.rectangle(**rect_params).draw(surface)
-        return surface
-
-
-    def piano_surface(self, time, notes):
-        midi = self.midi
-        size = self.piano_size
-        surface = gizeh.Surface(*size)
-        hit_note_colors = {
-            midi.notes[interval.index]['note']:
-            track_colors[midi.notes[interval.index]['track'] % 4]
-            for interval in notes
-        }
-
-        ivory_params = lambda note: {
-            'lx'    : size[0]/52,
-            'ly'    : size[1],
-            'xy'    : (size[0] * position[note], size[1] / 2),
-            'fill'  : hit_note_colors[note][1] if note in hit_note_colors.keys() else RGB('#CBCFCC'),
-            'stroke': RGB('#3A3E42'),
-            'stroke_width': 1
-        }
-        ebony_params = lambda note: {
-            'lx'  : size[0]/52 * 0.7,
-            'ly'  : size[1] * 2/3,
-            'xy'  : (size[0] * position[note], size[1] / 3),
-            'fill': hit_note_colors[note][0] if note in hit_note_colors.keys() else RGB('#3A3E42')
-        }
-
-        for note in filter(is_ivory, range(21, 109)):
-            gizeh.rectangle(**ivory_params(note)).draw(surface)
-        for note in filter(is_ebony, range(21, 109)):
-            gizeh.rectangle(**ebony_params(note)).draw(surface)
-        return surface
-
+    def inject_callback(self, func):
+        self.callback = func
 
     def make_frame(self, time):
-        midi = self.midi
-        foresee = 2
-        current = midi.second2tick(time)
-        future = midi.second2tick(time + foresee)
-        # print(time, current, future)
+        self.callback(time)
+        now = self.midi.second2tick(time)
+        future = self.midi.second2tick(time + self.foresee)
         NONE = Note(float('inf'), float('inf'), 0)
 
-        while first(self.queue_wait, NONE).end < current:
-            heappop(self.queue_wait)
-        while self.notes.peek(NONE).begin <= future:
-            note = next(self.notes)
-            heappush(self.queue_wait, note)
+        while first(self.notes, NONE).end < now:
+            heappop(self.notes)
+        while self.waits.peek(NONE).begin <= future:
+            note = self.waits.next()
+            heappush(self.notes, note)
 
-        while first(self.queue_hit, NONE).end < current:
-            # print(self.queue_hit[0][1] < current, self.queue_hit[0][1], current)
-            heappop(self.queue_hit)
-        while self.notes_hit.peek(NONE).begin <= current:
-            note = next(self.notes_hit)
-            heappush(self.queue_hit, note)
+        surface = gizeh.Surface(*self.size)
+        for note in self.notes:
+            rect = self.spawn_rectangle(note, now, future)
+            rect.draw(surface)
+        return surface.get_npimage()
 
-        # print(self.queue_wait)
+    def spawn_rectangle(self, note, now, future):
+        w, h = self.size
+        begin, end = max(note.begin, now), min(note.end, future)
+        pitch = self.midi.notes[note.index]['note']
+        color = track_colors[self.midi.notes[note.index]['track'] % 4]
 
-        # qw = {n.index for n in self.queue_wait}
-        # qh= {n.index for n in self.queue_hit}
-        # tw = {i[2] for i in midi.timeline[current:future]}
-        # th = {i[2] for i in midi.timeline[current]}
-        # assert(qw == tw)
-        # print(self.queue_wait)
-        # print(midi.timeline[current:future])
-        # assert(qh == th)
+        lx = w / 52 if is_ivory(pitch) else w / 52 * 0.7
+        ly = h * (end - begin) / (future - now) - 5
+        xy = (w * position[pitch],
+              h * (future - end / 2 - begin / 2) / (future - now))
+        fill = color[1] if is_ivory(pitch) else color[0]
 
-        # print(current, future)
-        # print(sorted(notes_hit))
-        # print(self.queue_hit)
-        # assert(sorted(notes_hit) == sorted(self.queue_hit))
-        foresee = self.foresee_surface(time, self.queue_wait).get_npimage()
-        piano = self.piano_surface(time, self.queue_hit).get_npimage()
-        # TODO stack two video clips
-        return np.concatenate((foresee, piano), axis=0)
+        return gizeh.rectangle(lx=lx, ly=ly, xy=xy, fill=fill)
 
 
-def midi_videoclip(sheet, size=(640, 360), iter_callback=lambda _: None):
-    vis = Visualizer(sheet, size)
-    duration = sheet.midi.length  # expensive call
+class PianoPart:
+    def __init__(self, midi, size):
+        self.midi = midi
+        self.size = size
+        self.notes = list()
+        all_notes = [Note(i[0], i[1], i[2]) for i in midi.timeline.items()]
+        all_notes = sorted(all_notes, key=lambda n: n.begin)
+        self.waits = peekable(all_notes)
 
-    def make_frame(t):
-        iter_callback(t / duration)
-        return vis.make_frame(t)
+    def make_frame(self, time):
+        now = self.midi.second2tick(time)
+        NONE = Note(float('inf'), float('inf'), 0)
 
-    return mpy.VideoClip(make_frame, duration=duration)
+        while first(self.notes, NONE).end < now:
+            heappop(self.notes)
+        while self.waits.peek(NONE).begin <= now:
+            note = self.waits.next()
+            heappush(self.notes, note)
+
+        hits = {
+            self.midi.notes[note.index]['note']: note for note in self.notes
+        }
+
+        surface = gizeh.Surface(*self.size)
+        for pitch in filter(is_ivory, range(21, 109)):
+            note = hits[pitch] if pitch in hits else None
+            rect = self.spawn_ivory_key(pitch, note)
+            rect.draw(surface)
+        for pitch in filter(is_ebony, range(21, 109)):
+            note = hits[pitch] if pitch in hits else None
+            rect = self.spawn_ebony_key(pitch, note)
+            rect.draw(surface)
+        return surface.get_npimage()
+
+    def spawn_ivory_key(self, pitch, note=None):
+        w, h = self.size
+        color = RGB('#CBCFCC')
+        if note:
+            # pitch = self.midi.notes[note.index]['note']
+            color = track_colors[self.midi.notes[note.index]['track'] % 4][1]
+
+        lx = w / 52
+        ly = h
+        xy = (w * position[pitch], h / 2)
+        fill = color
+        stroke = RGB('#3A3E42')
+        stroke_width = 1
+        return gizeh.rectangle(lx=lx, ly=ly, xy=xy, fill=fill, stroke=stroke,
+                               stroke_width=stroke_width)
+
+    def spawn_ebony_key(self, pitch, note=None):
+        w, h = self.size
+        color = RGB('#3A3E42')
+        if note:
+            # pitch = self.midi.notes[note.index]['note']
+            color = track_colors[self.midi.notes[note.index]['track'] % 4][0]
+
+        lx = w / 52 * 0.7
+        ly = h * 2 / 3
+        xy = (w * position[pitch], h / 3)
+        fill = color
+        return gizeh.rectangle(lx=lx, ly=ly, xy=xy, fill=fill)
+
+
+def midi_videoclip(midi, size=(640, 360), iter_callback=lambda _: None):
+    lower_size = (size[0], int(size[0] / 52 * 6))
+    upper_size = (size[0], size[1] - lower_size[1])
+    lower_part = PianoPart(midi, lower_size)
+    upper_part = ForeseePart(midi, upper_size)
+
+    duration = midi.midi.length  # expensive call
+    upper_part.inject_callback(lambda t: iter_callback(t / duration))
+
+    upper_clip = mpy.VideoClip(upper_part.make_frame, duration=duration)
+    lower_clip = mpy.VideoClip(lower_part.make_frame, duration=duration)
+    final_clip = mpy.clips_array([[upper_clip], [lower_clip]])
+
+    return final_clip
 
 
 if __name__ == '__main__':
@@ -158,5 +161,5 @@ if __name__ == '__main__':
     from parser import Midi
 
     sheet = Midi('midi/The Positive and Negative.mid')
-    # clip = midi_videoclip(sheet, iter_callback=None)
-    # clip.write_videofile('/tmp/test.webm', fps=20)
+    clip = midi_videoclip(sheet)
+    clip.write_videofile('/tmp/test.webm', fps=20)
