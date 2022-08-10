@@ -134,8 +134,7 @@ class Player(object):
 
             self.set_window_sensitive(False)
 
-            def update_progress_bar(clip):
-                progress = progress_bar.get_fraction() + 1 / clip.nframes
+            def update_progress_bar(progress):
                 progress_bar.set_fraction(progress)
                 while Gtk.events_pending():
                     Gtk.main_iteration()

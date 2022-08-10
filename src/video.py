@@ -138,34 +138,15 @@ class Visualizer:
         return np.concatenate((foresee, piano), axis=0)
 
 
-def midi_videoclip(sheet, size=(640, 360), iter_callback=None):
+def midi_videoclip(sheet, size=(640, 360), iter_callback=lambda _: None):
     vis = Visualizer(sheet, size)
-    clip = mpy.VideoClip(lambda t: vis.make_frame(t), duration=sheet.midi.length)
+    duration = sheet.midi.length  # expensive call
 
-    # callback function is for refreshing gtk progressing bar
-    # the following code is altered from moviepy/Clip.py:446
-    # TODO move callback into make_frame
-    if iter_callback is not None:
-        def my_iter_frames(fps=None, with_times=False, progress_bar=False,
-                           dtype=None, logger=None):
-            clip.nframes = int(clip.duration * fps) + 1
+    def make_frame(t):
+        iter_callback(t / duration)
+        return vis.make_frame(t)
 
-            def generator():
-                for t in np.arange(0, clip.duration, 1.0 / fps):
-                    iter_callback(clip)
-                    frame = clip.get_frame(t)
-                    if (dtype is not None) and (frame.dtype != dtype):
-                        frame = frame.astype(dtype)
-                    if with_times:
-                        yield t, frame
-                    else:
-                        yield frame
-
-            return generator()
-
-        clip.iter_frames = my_iter_frames
-
-    return clip
+    return mpy.VideoClip(make_frame, duration=duration)
 
 
 if __name__ == '__main__':
