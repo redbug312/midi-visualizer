@@ -71,7 +71,7 @@ class ForeseePart:
         while first(self.notes, NONE).end < now:
             heappop(self.notes)
         while self.waits.peek(NONE).begin <= future:
-            note = self.waits.next()
+            note = next(self.waits)
             heappush(self.notes, note)
 
         surface = gizeh.Surface(*self.size)
@@ -114,7 +114,7 @@ class PianoPart:
         while first(self.notes, NONE).end < now:
             heappop(self.notes)
         while self.waits.peek(NONE).begin <= now:
-            note = self.waits.next()
+            note = next(self.waits)
             heappush(self.notes, note)
 
         redraw_ivory = {}
