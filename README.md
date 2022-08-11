@@ -1,21 +1,21 @@
 # MIDI Visualizer
-MIDI visualizer is a Gtk application to visualize MIDI file as piano tutorial videos.
+
+Gtk application to visualize MIDI file as piano tutorial videos. A project for
+the course Multimedium Computing Environment (National Taiwan University, 2018
+Spring).
 
 ![Here's preview of MIDI visualizer](doc/images/preview.png)
 
-Homework 2 of the course Multimedium Computing Environment (National Taiwan University, 2018 Spring).
-
-This project contains only the most basic features, and remains lots of space for performance improvement. For those who're interested, I would suggest [build a Gstreamer plugin](https://gstreamer.freedesktop.org/documentation/plugin-development/) from scratch instead of forking this repository.
-
 ## Build Environment
 
-### Debian-based Linux
+### Ubuntu
 
 ```bash
-$ sudo apt install gstreamer1.0-plugins-bad python3-pip ffmpeg libffi-dev
-$ pip3 install --user gizeh moviepy mido intervaltree
-$ mkdir -p soundfont && wget musical-artifacts.com/artifacts/433/Touhou.sf2 -O soundfont/Touhou.sf2
+$ sudo apt install python3-venv python3-pip gstreamer1.0-plugins-bad ffmpeg libffi-dev
+$ make start
 ```
+
+The Makefile script downloads a soundfont (249 MB) and creates virtualenv environment.
 
 ### Windows
 
@@ -52,16 +52,8 @@ $ mkdir -p soundfont && wget musical-artifacts.com/artifacts/433/Touhou.sf2 -O s
         - cairo = dlopen(ffi, 'cairo', 'cairo-2')
         + cairo = dlopen(ffi, 'cairo', 'cairo-2', 'cairo-gobject-2')
         ```
-7. Download soundfont from [musical-artifacts.com](https://musical-artifacts.com/artifacts/433), save it to `soundfont/Touhou.sf2`
-
-## Execute the Program
-
-```bash
-$ python3 main.py
-```
-A Gtk windows shows up after the an additional dependency downloaded by `moviepy`.
-
-**Noted**: There are some issues with playing the video in Windows, but its saving feature still works.
+7. Download soundfont from [musical-artifacts.com](https://musical-artifacts.com/artifacts/433), save it to `soundfont/touhou.sf2`
+8. Execute `python3 main.py`
 
 ## Details Explanation
 
@@ -81,6 +73,6 @@ A Gtk windows shows up after the an additional dependency downloaded by `moviepy
     - [mido](https://github.com/olemb/mido/): a library for working with MIDI messages and ports
     - [intervaltree](https://github.com/chaimleib/intervaltree): a mutable, self-balancing interval tree
 3. Resources
-    - `midi/The Positive And Negative.mid` is from [Chris33711's Youtube video](https://www.youtube.com/watch?v=n2HGEiUBTQY)
-    - `midi/Charming Domination.mid` is from [Chris33711's Youtube video](https://www.youtube.com/watch?v=psOjoZmGLnA)
-    - `soundfont/Touhou.sf2` is from [musical-artifacts.com](https://musical-artifacts.com/artifacts/433)
+    - `midi/charming-domination.mid` from [Chris33711](https://youtu.be/psOjoZmGLnA)
+    - `midi/at-the-end-of-the-spring.mid` from [Chris33711](https://youtu.be/I3TRDQYr8xI)
+    - `soundfont/Touhou.sf2` from [Musical Artifacts](https://musical-artifacts.com/artifacts/433)

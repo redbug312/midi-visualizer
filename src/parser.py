@@ -48,7 +48,8 @@ class Midi():
                     except AssertionError:
                         continue
                     index, begin = self.pending_notes[message.note]
-                    self.timeline[begin:tick] = index
+                    if tick > begin:
+                        self.timeline[begin:tick] = index
                     del self.pending_notes[message.note]
                 elif message.type == 'set_tempo':
                     current_meta['tempo'] = message.tempo
