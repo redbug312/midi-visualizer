@@ -1,8 +1,9 @@
 # MIDI Visualizer
 
-Gtk application to visualize MIDI file as piano tutorial videos. A project for
-the course Multimedium Computing Environment (National Taiwan University, 2018
-Spring).
+Gtk application to visualize MIDI file as piano tutorial videos.
+
+A project for the course Multimedium Computing Environment (National Taiwan
+University, 2018 Spring).
 
 ![Here's preview of MIDI visualizer](doc/images/preview.png)
 
@@ -15,7 +16,8 @@ $ sudo apt install python3-venv python3-pip gstreamer1.0-plugins-bad ffmpeg libf
 $ make start
 ```
 
-The Makefile script downloads a soundfont (249 MB) and creates virtualenv environment.
+The Makefile script downloads a soundfont (249 MB) and creates virtualenv
+environment.
 
 ### Windows
 
@@ -53,7 +55,7 @@ The Makefile script downloads a soundfont (249 MB) and creates virtualenv enviro
         + cairo = dlopen(ffi, 'cairo', 'cairo-2', 'cairo-gobject-2')
         ```
 7. Download soundfont from [musical-artifacts.com](https://musical-artifacts.com/artifacts/433), save it to `soundfont/touhou.sf2`
-8. Execute `python3 main.py`
+8. Execute `python3 src/main.py`
 
 ## Details Explanation
 
