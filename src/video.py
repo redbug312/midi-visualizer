@@ -219,4 +219,4 @@ if __name__ == '__main__':
 
     sheet = Midi('midi/The Positive and Negative.mid')
     clip = midi_videoclip(sheet)
-    clip.write_videofile('/tmp/test.webm', fps=20)
+    clip.write_videofile('/tmp/test.webm', fps=60, audio=False, threads=4)

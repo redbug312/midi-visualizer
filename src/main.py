@@ -141,7 +141,7 @@ class Player(object):
 
             sheet = Midi(source)
             clip = video.midi_videoclip(sheet, iter_callback=update_progress_bar)
-            clip.write_videofile('tmp.webm', codec='libvpx', fps=20)
+            clip.write_videofile('tmp.webm', fps=30, audio=False, threads=4)
             os.rename('tmp.webm', 'tmp.webm~')  # MoviePy disallows illegal file extension
             webmsrc.set_property('location', 'tmp.webm~')
             midisrc.set_property('location', source)
