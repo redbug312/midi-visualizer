@@ -28,7 +28,7 @@ class Player(object):
                             'autoaudiosink']
         frontend = pipeline.make_frontend_pipeline('frontend', frontend_elements)
         play_backend = pipeline.make_play_backend_pipeline('backend', backend_elements)
-        frontend.get_by_name('fluiddec').set_property('soundfont', 'soundfont/Touhou.sf2')
+        frontend.get_by_name('fluiddec').set_property('soundfont', 'soundfont/touhou.sf2')
 
         self.player.add(frontend)
         self.player.add(play_backend)

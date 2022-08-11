@@ -1,4 +1,6 @@
 __pycache__/
 soundfont/
+venv/
+
 tmp.webm
 tmp.webm~

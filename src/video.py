@@ -71,7 +71,7 @@ class ForeseePart:
         while first(self.notes, NONE).end < now:
             heappop(self.notes)
         while self.waits.peek(NONE).begin <= future:
-            note = self.waits.next()
+            note = next(self.waits)
             heappush(self.notes, note)
 
         surface = gizeh.Surface(*self.size)
@@ -114,7 +114,7 @@ class PianoPart:
         while first(self.notes, NONE).end < now:
             heappop(self.notes)
         while self.waits.peek(NONE).begin <= now:
-            note = self.waits.next()
+            note = next(self.waits)
             heappush(self.notes, note)
 
         redraw_ivory = {}
@@ -217,6 +217,6 @@ if __name__ == '__main__':
     # from gi.repository import Gst, Gtk, GLib
     from parser import Midi
 
-    sheet = Midi('midi/The Positive and Negative.mid')
+    sheet = Midi('midi/the-positive-and-negative.mid')
     clip = midi_videoclip(sheet)
-    clip.write_videofile('/tmp/test.webm', fps=60, audio=False, threads=4)
+    clip.write_videofile('/tmp/test.webm', fps=30, audio=False, threads=4)
