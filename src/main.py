@@ -5,7 +5,7 @@ gi.require_version('Gst', '1.0')
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gst, Gtk, GLib
 
-import midi
+from parser import Midi
 import video
 import pipeline
 
@@ -60,7 +60,7 @@ class Player(object):
 
     def build_ui(self):
         builder = Gtk.Builder()
-        builder.add_from_file('ui.glade')
+        builder.add_from_file('src/ui.glade')
         builder.connect_signals(self)
         builder.get_object('main_window').show()
         return builder
@@ -134,15 +134,14 @@ class Player(object):
 
             self.set_window_sensitive(False)
 
-            def update_progress_bar(clip):
-                progress = progress_bar.get_fraction() + 1 / clip.nframes
+            def update_progress_bar(progress):
                 progress_bar.set_fraction(progress)
                 while Gtk.events_pending():
                     Gtk.main_iteration()
 
-            sheet = midi.Midi(source)
+            sheet = Midi(source)
             clip = video.midi_videoclip(sheet, iter_callback=update_progress_bar)
-            clip.write_videofile('tmp.webm', codec='libvpx', fps=20)
+            clip.write_videofile('tmp.webm', fps=30, audio=False, threads=4)
             os.rename('tmp.webm', 'tmp.webm~')  # MoviePy disallows illegal file extension
             webmsrc.set_property('location', 'tmp.webm~')
             midisrc.set_property('location', source)

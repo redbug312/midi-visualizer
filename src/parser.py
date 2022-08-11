@@ -3,6 +3,19 @@ import mido
 import intervaltree
 
 
+class Note:
+    def __init__(self, begin, end, index):
+        self.begin = begin
+        self.end = end
+        self.index = index
+
+    def __lt__(self, other):
+        return self.end < other.end
+
+    def __repr__(self):
+        return 'Note(%s, %d..%d)' % (self.index, self.begin, self.end)
+
+
 class Midi():
     def __init__(self, file=None):
         self.midi = None
@@ -67,9 +80,9 @@ class Midi():
             pass
 
     def second2tick(self, time):
-        try:
-            meta = next(iter(self.metas[time]))
-        except StopIteration:  # avoid branches from checking if time in metas beforehand
-            return None
+        # TODO move to Visualizer and avoid intervaltree lookup
+        # or maintain Note time unit in sec
+        index = min(time, self.metas.end() - 1)
+        meta = next(iter(self.metas[index]))
         secs, ticks = (meta[0], meta[1]), meta[2]['ticks']
         return ticks[0] + (ticks[1] - ticks[0]) * (time - secs[0]) / (secs[1] - secs[0])
