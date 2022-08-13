@@ -5,6 +5,7 @@ gi.require_version('Gst', '1.0')
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gst, Gtk, GLib
 
+from logger import Logger
 from parser import Midi
 from pipeline import Player
 import video
@@ -126,16 +127,13 @@ class App:
 
             self.set_window_sensitive(False)
 
-            def update_progress_bar(progress):
-                progress_bar.set_fraction(progress)
-                while Gtk.events_pending():
-                    Gtk.main_iteration()
+            midi = Midi(source)
+            clip = video.midi_videoclip(midi)
+            logger = Logger(progress_bar)
+            clip.write_videofile('tmp.webm', fps=30, audio=False, threads=4,
+                                 logger=logger)
 
-            sheet = Midi(source)
-            clip = video.midi_videoclip(sheet, iter_callback=update_progress_bar)
-            clip.write_videofile('tmp.webm', fps=30, audio=False, threads=4)
             os.rename('tmp.webm', 'tmp.webm~')  # MoviePy disallows illegal file extension
-
             self.player.load('tmp.webm~', source)
             self.set_window_sensitive(True)
 

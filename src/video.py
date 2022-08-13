@@ -57,13 +57,8 @@ class ForeseePart:
         all_notes = sorted(all_notes, key=lambda n: n.begin)
         self.waits = peekable(all_notes)
         self.foresee = 2  # sec
-        self.callback = lambda _: None
-
-    def inject_callback(self, func):
-        self.callback = func
 
     def make_frame(self, time):
-        self.callback(time)
         now = self.midi.second2tick(time)
         future = self.midi.second2tick(time + self.foresee)
         NONE = Note(float('inf'), float('inf'), 0)
@@ -193,15 +188,13 @@ class PianoPart:
         return gizeh.rectangle(lx=lx, ly=ly, xy=xy, fill=fill)
 
 
-def midi_videoclip(midi, size=(640, 360), iter_callback=lambda _: None):
+def midi_videoclip(midi, size=(640, 360)):
     lower_size = (size[0], int(size[0] / 52 * 6))
     upper_size = (size[0], size[1] - lower_size[1])
     lower_part = PianoPart(midi, lower_size)
     upper_part = ForeseePart(midi, upper_size)
 
     duration = midi.midi.length  # expensive call
-    upper_part.inject_callback(lambda t: iter_callback(t / duration))
-
     upper_clip = mpy.VideoClip(upper_part.make_frame, duration=duration)
     lower_clip = mpy.VideoClip(lower_part.make_frame, duration=duration)
     final_clip = mpy.clips_array([[upper_clip], [lower_clip]])
@@ -210,13 +203,7 @@ def midi_videoclip(midi, size=(640, 360), iter_callback=lambda _: None):
 
 
 if __name__ == '__main__':
-    # import os
-    # import gi
-    # gi.require_version('Gst', '1.0')
-    # gi.require_version('Gtk', '3.0')
-    # from gi.repository import Gst, Gtk, GLib
     from parser import Midi
-
-    sheet = Midi('midi/the-positive-and-negative.mid')
-    clip = midi_videoclip(sheet)
+    midi = Midi('midi/at-the-end-of-the-spring.mid')
+    clip = midi_videoclip(midi)
     clip.write_videofile('/tmp/test.webm', fps=30, audio=False, threads=4)
