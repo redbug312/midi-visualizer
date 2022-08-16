@@ -32,15 +32,6 @@ class App:
         bus.add_signal_watch()
         bus.connect('message', self.on_message)
 
-        # only for debug this paragraph
-        self.player.load('test.mp4', 'midi/at-the-end-of-the-spring.mid')
-        self.set_window_sensitive(True)
-        progress_bar = self.builder.get_object('progressing_bar')
-        hint_label   = self.builder.get_object('hint_label')
-        progress_bar.set_fraction(1)
-        hint_label.set_visible(False)
-        self.player.widget().show()
-
     def start(self):
         GLib.timeout_add(self.refresh_interval, self.refresh_ui)
         Gtk.main()
