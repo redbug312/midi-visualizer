@@ -19,10 +19,10 @@ class Player:
         self.load_pipe.link_pads('video_sink', self.play_pipe, 'video_src')
         self.load_pipe.link_pads('audio_sink', self.play_pipe, 'audio_src')
 
-    def load(self, webm, midi):
-        webmsrc = self.elements['load'][0]
+    def load(self, mpeg, midi):
+        mpegsrc = self.elements['load'][0]
         midisrc = self.elements['load'][3]
-        webmsrc.set_property('location', webm)
+        mpegsrc.set_property('location', mpeg)
         midisrc.set_property('location', midi)
 
     def save(self, file):
@@ -109,7 +109,7 @@ def make_play_pipeline():
 def make_save_pipeline():
     # Connected load-save pipeline can be seen as:
     #
-    # env LANG=C gst-launch-1.0 qtmux name=mux ! filesink location=result.mp4 \
+    # env LANG=C gst-launch-1.0 qtmux name=mux ! filesink location=output.mp4 \
     #     filesrc location=/tmp/test.mp4 ! qtdemux ! queue ! mux. \
     #     filesrc location=/tmp/spring.mid ! midiparse ! fluiddec soundfont=/tmp/th.sf2 ! audioconvert ! lamemp3enc ! queue ! mux.
     #

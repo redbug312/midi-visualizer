@@ -2,6 +2,7 @@ __pycache__/
 soundfont/
 venv/
 
-tmp.webm
-tmp.webm~
-result.webm
+tmp.mp4
+tmp.mp4~
+output.mp4
+pipeline.png
