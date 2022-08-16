@@ -33,7 +33,7 @@ class App:
         bus.connect('message', self.on_message)
 
         # only for debug this paragraph
-        self.player.load('/tmp/test.webm', 'midi/at-the-end-of-the-spring.mid')
+        self.player.load('test.mp4', 'midi/at-the-end-of-the-spring.mid')
         self.set_window_sensitive(True)
         progress_bar = self.builder.get_object('progressing_bar')
         hint_label   = self.builder.get_object('hint_label')
@@ -47,7 +47,7 @@ class App:
 
     def cleanup(self):
         try:
-            os.remove('tmp.webm~')
+            os.remove('tmp.mp4~')
         except OSError:
             pass
         if self.player:
@@ -130,11 +130,10 @@ class App:
             midi = Midi(source)
             clip = video.midi_videoclip(midi)
             logger = Logger(progress_bar)
-            clip.write_videofile('tmp.webm', fps=30, audio=False, threads=4,
-                                 logger=logger)
+            clip.write_videofile('tmp.mp4', fps=30, audio=False, logger=logger)
 
-            os.rename('tmp.webm', 'tmp.webm~')  # MoviePy disallows illegal file extension
-            self.player.load('tmp.webm~', source)
+            os.rename('tmp.mp4', 'tmp.mp4~')  # MoviePy disallows illegal file extension
+            self.player.load('tmp.mp4~', source)
             self.set_window_sensitive(True)
 
             progress_bar.set_fraction(1)

@@ -206,4 +206,4 @@ if __name__ == '__main__':
     from parser import Midi
     midi = Midi('midi/at-the-end-of-the-spring.mid')
     clip = midi_videoclip(midi)
-    clip.write_videofile('/tmp/test.webm', fps=30, audio=False, threads=4)
+    clip.write_videofile('/tmp/test.mp4', fps=30, audio=False)

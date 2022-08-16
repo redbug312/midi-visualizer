@@ -6,6 +6,7 @@ ENV ?= . $(shell pwd)/venv/bin/activate; \
 start: venv soundfont/touhou.sf2
 	$(ENV) python3 src/main.py
 
+.PHONY: pipeline.png
 pipeline.png: venv
 	# See https://gstreamer.freedesktop.org/documentation/tutorials/basic/debugging-tools.html?gi-language=c#getting-pipeline-graphs
 	$(ENV) GST_DEBUG_DUMP_DOT_DIR=/tmp python3 src/pipeline.py

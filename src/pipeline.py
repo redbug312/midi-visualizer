@@ -69,7 +69,7 @@ def extend_pipe(pipeline, names):
 def make_load_pipeline():
     pipeline = Gst.Pipeline.new('load')
     elements = []
-    elements += extend_pipe(pipeline, ['filesrc', 'matroskademux'])
+    elements += extend_pipe(pipeline, ['filesrc', 'qtdemux'])
     elements += extend_pipe(pipeline, ['queue'])
     elements += extend_pipe(pipeline, ['filesrc', 'midiparse', 'fluiddec'])
 
@@ -89,10 +89,15 @@ def make_load_pipeline():
 
 
 def make_play_pipeline():
+    # Connected load-play pipeline can be seen as:
+    #
+    # env LANG=C gst-launch-1.0 \
+    #     filesrc location=/tmp/test.mp4 ! qtdemux ! queue ! avdec_h264 ! videoconvert ! autovideosink \
+    #     filesrc location=/tmp/spring.mid ! midiparse ! fluiddec soundfont=/tmp/th.sf2 ! audioconvert ! autoaudiosink
     pipeline = Gst.Pipeline.new('play')
     elements = []
-    elements += extend_pipe(pipeline, ['vp8dec', 'videoconvert', 'gtksink'])
-    elements += extend_pipe(pipeline, ['autoaudiosink'])
+    elements += extend_pipe(pipeline, ['avdec_h264', 'videoconvert', 'gtksink'])
+    elements += extend_pipe(pipeline, ['audioconvert', 'autoaudiosink'])
 
     video_src = Gst.GhostPad.new('video_src', elements[0].get_static_pad('sink'))
     audio_src = Gst.GhostPad.new('audio_src', elements[3].get_static_pad('sink'))
@@ -102,10 +107,17 @@ def make_play_pipeline():
 
 
 def make_save_pipeline():
+    # Connected load-save pipeline can be seen as:
+    #
+    # env LANG=C gst-launch-1.0 qtmux name=mux ! filesink location=result.mp4 \
+    #     filesrc location=/tmp/test.mp4 ! qtdemux ! queue ! mux. \
+    #     filesrc location=/tmp/spring.mid ! midiparse ! fluiddec soundfont=/tmp/th.sf2 ! audioconvert ! lamemp3enc ! queue ! mux.
+    #
+    # Notice that the removal of lamemp3enc would cause buzzing noise
     pipeline = Gst.Pipeline.new('save')
     elements = []
-    elements += extend_pipe(pipeline, ['webmmux', 'filesink'])
-    elements += extend_pipe(pipeline, ['audioconvert', 'vorbisenc', 'queue'])
+    elements += extend_pipe(pipeline, ['qtmux', 'filesink'])
+    elements += extend_pipe(pipeline, ['audioconvert', 'lamemp3enc', 'queue'])
 
     elements[4].link(elements[0])  # use queue before a mux
     video_src = Gst.GhostPad.new('video_src', elements[0].get_request_pad('video_0'))
@@ -120,5 +132,5 @@ if __name__ == '__main__':
     Gtk.init(None)
     player = Player()
     player.draw_pipeline()
-    player.load('/tmp/test.webm', 'midi/at-the-end-of-the-spring.mid')
-    player.pipeline.set_state(Gst.State.PLAYING)
+    # player.load('/tmp/test.mp4', 'midi/at-the-end-of-the-spring.mid')
+    # player.pipeline.set_state(Gst.State.PLAYING)
