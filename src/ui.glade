@@ -396,9 +396,9 @@
       <action-widget response="-5">save_ok</action-widget>
     </action-widgets>
   </object>
-  <object class="GtkFileFilter" id="webm_filter">
+  <object class="GtkFileFilter" id="mp4_filter">
     <mime-types>
-      <mime-type>video/webm</mime-type>
+      <mime-type>video/mp4</mime-type>
     </mime-types>
   </object>
 </interface>
